@@ -1,0 +1,1 @@
+https://nyctaxisample.blob.core.windows.net/sample

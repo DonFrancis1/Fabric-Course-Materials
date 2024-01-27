@@ -1,0 +1,26 @@
+let
+    Source = Lakehouse.Contents([]),
+    #"Navigation 1" = Source{[workspaceId = "8247e495-769c-429d-aeea-6788ab623db7"]}[Data],
+    #"Navigation 2" = #"Navigation 1"{[lakehouseId = "0dee3a59-22eb-48fb-b91f-fd07b435e50f"]}[Data],
+    #"Navigation 3" = #"Navigation 2"{[Id = "Discovery", ItemKind = "Table"]}[Data],
+
+    // Convert the "OrderDate" column to date type
+    #"Changed column type" = Table.TransformColumnTypes(#"Navigation 3", {{"OrderDate", type date}}),
+
+    // Select only the "OrderDate" column
+    #"Removed other columns" = Table.SelectColumns(#"Changed column type", {"OrderDate"}),
+
+    // Remove duplicate dates
+    #"Removed duplicates" = Table.Distinct(#"Removed other columns", {"OrderDate"}),
+
+    // Add year, month, quarter, and day of week columns
+    Year = Table.AddColumn(#"Removed duplicates", "Year", each Date.Year([OrderDate])),
+    MonthNumber = Table.AddColumn(Year, "MonthNumber", each Date.Month([OrderDate])),
+    MonthNameFull = Table.AddColumn(MonthNumber, "MonthNameFull", each Date.ToText([OrderDate], "MMMM")),
+    MonthNameAbbreviated = Table.AddColumn(MonthNameFull, "MonthNameAbbreviated", each Date.ToText([OrderDate], "MMM")),
+    Quarter = Table.AddColumn(MonthNameAbbreviated, "Quarter", each "Q" & Text.From(Date.QuarterOfYear([OrderDate]))),
+    DayOfWeek = Table.AddColumn(Quarter, "DayOfWeek", each Date.DayOfWeekName([OrderDate])),
+  #"Changed column type 1" = Table.TransformColumnTypes(DayOfWeek, {{"MonthNameFull", type text}, {"MonthNameAbbreviated", type text}, {"Quarter", type text}, {"DayOfWeek", type text}, {"Year", Int64.Type}, {"MonthNumber", type text}})
+
+in
+    #"Changed column type 1"
